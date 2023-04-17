@@ -61,6 +61,7 @@ app.use(express.static(__dirname + "/public/html"));
 
 const loginRoutes = require("./routes/login");
 const logoutRoutes = require("./routes/logout");
+const usersRoutes = require("./routes/users");
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/html/cover.html"));
@@ -68,6 +69,7 @@ app.get("/", (req, res) => {
 
 app.use("/login", loginRoutes);
 app.use("/logout", logoutRoutes);
+app.use("/users", usersRoutes);
 
 module.exports = app;
 
