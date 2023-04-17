@@ -4,8 +4,205 @@ const bcrypt = require("bcrypt");
 const uuid = require("uuid-random");
 const saltRounds = 10;
 const nodemailer = require("nodemailer");
+const { sign } = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 let today = new Date().toISOString().slice(0, 10);
+
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: API per la login
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Indirizzo email
+ *               password:
+ *                 type: string
+ *                 description: Password
+ *             required:
+ *               - email
+ *               - password
+ *             example:
+ *               email: info@salvatorecasalino.it
+ *               password: Password0
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         description: Error
+ */
+
+router.post('/login',(req,res) => {
+  console.log(req.body);
+  const sqlLogin = `SELECT * FROM users WHERE email = '${req.body.email}'`;
+
+  connection.query(sqlLogin,(error,result) => {
+
+    
+      try {
+          if(result.length > 0){
+              
+              var email = result[0].email;
+              var name = result[0].name;
+              var surname = result[0].surname;
+              var currentId = result[0].id;
+              var verify = result[0].verify;
+              var code = result[0].verificationCode;
+  
+              var userPass = result[0].password;
+  
+              const match = bcrypt.compareSync(req.body.password, userPass);
+  
+              if(match){
+                  const sqlRealLogin = `SELECT id,name,surname,email FROM users WHERE email = '${req.body.email}' AND password = '${userPass}'`;
+                  userPass = undefined;
+                  connection.query(sqlRealLogin, (error, result)=> {
+                      const jsontoken = sign({result: result}, "qwe1234",{
+                          expiresIn: "90d"
+                      })
+                      res.status(200).json({
+                          success: true,
+                          message: "LOGIN_OK",
+                          id: currentId,
+                          email: email,
+                          name: name,
+                          surname: surname,
+                          code: code,
+                          verify: verify,
+                          token: jsontoken,
+                      })
+                  })
+              }else{
+                  res.status(400).json({
+                      success: false,
+                      message: "INVALID_MAIL_PASSWORD"
+                  })
+              }
+          }else{
+              res.status(400).json({
+                  success: false,
+                  message: "NO_USER_WITH_THIS_CREDENTIAL"
+              })
+          }
+      } catch (error) {
+          res.status(400).json({
+              success: false,
+              message: error
+          })
+      }
+  })
+});
+
+/**
+ * @swagger
+ * /api/users/logout:
+ *   post:
+ *     summary: API per la logout
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token generato alla login
+ *             required:
+ *               - email
+ *             example:
+ *               token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXN1bHQiOlt7ImlkIjoiNjA4NjIyZDgtZGU0NC00NGZlLTk4MGUtNjBiNmFhMWNmMDk5IiwibmFtZSI6IlNhbHZhdG9yZSIsInN1cm5hbWUiOiJDYXNhbGlubyIsImVtYWlsIjoiaW5mb0BzYWx2YXRvcmVjYXNhbGluby5pdCJ9XSwiaWF0IjoxNjgxNzQ5MTM4LCJleHAiOjE2ODk1MjUxMzh9.56nUKSv7_12gqAmNkuj4LHvKAz84PstwRDaAB-060Wc
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         description: Error
+ */
+
+router.post('/logout',(req,res) => {
+  const { tokenJwt } = req.body;
+  try {
+      jwt.sign(tokenJwt, "", { expiresIn: 1 } , (logout, err) => {
+          if (logout) {
+              res.status(200).json({
+                  success: true,
+                  message: "LOGOUT_OK"
+              })
+          } else {
+              res.status(200).json({
+                  success: false,
+                  message: "LOGOUT_KO"
+              })
+          }
+      });    
+  } catch (error) {
+      res.status(200).json({
+          success: false,
+          message: error
+      })
+  }
+      
+});
+
+/**
+ * @swagger
+ * /api/users/register:
+ *   post:
+ *     summary: API per la registrazione dell'utente
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome utente
+ *               surname:
+ *                 type: string
+ *                 description: Cognome utente
+ *               email:
+ *                 type: string
+ *                 description: Indirizzo email
+ *               password:
+ *                 type: string
+ *                 description: Password
+ *               locale:
+ *                 type: string
+ *                 description: Codice nazione
+ *             required:
+ *               - name
+ *               - surname
+ *               - email
+ *               - password
+ *               - locale
+ *             example:
+ *               name: Mario
+ *               surname: Rossi
+ *               email: info@salvatorecasalino.it
+ *               password: Password0
+ *               locale: it_IT
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         description: Error
+ */
 
 router.post("/register", (req, res) => {
   const body = req.body;

@@ -4,6 +4,11 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const cors = require("cors");
 require('dotenv').config();
+const swaggerUi = require('swagger-ui-express');
+const swaggerJSDoc = require('swagger-jsdoc');
+const swaggerOptions = require("./swagger");
+const { SwaggerTheme } = require('swagger-themes');
+const theme = new SwaggerTheme('v3');
 
 
 var months = [
@@ -26,7 +31,6 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(cors());
-let today = new Date().toISOString().slice(0, 10);
 
 //Connection to DB
 function handleDisconnect() {
@@ -59,17 +63,26 @@ handleDisconnect();
 
 app.use(express.static(__dirname + "/public/html"));
 
-const loginRoutes = require("./routes/login");
-const logoutRoutes = require("./routes/logout");
 const usersRoutes = require("./routes/users");
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/html/cover.html"));
 });
 
-app.use("/login", loginRoutes);
-app.use("/logout", logoutRoutes);
-app.use("/users", usersRoutes);
+app.use("/api/users", usersRoutes);
+
+// Creazione di uno Swagger JSDoc
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+const options = {
+  explorer: true,
+  customCss: theme.getBuffer('feeling-blue'),
+  customSiteTitle: "Tourista API",
+  // customfavIcon: "../public/html/logo.png"
+};
+
+// Middleware per servire la documentazione Swagger UI
+app.use('/documentation', swaggerUi.serve, swaggerUi.setup(swaggerSpec, options));
 
 module.exports = app;
 
