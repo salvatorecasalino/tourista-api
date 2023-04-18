@@ -64,12 +64,21 @@ handleDisconnect();
 app.use(express.static(__dirname + "/public/html"));
 
 const usersRoutes = require("./routes/users");
+const categoriesRoutes = require("./routes/categories");
+const citiesRoutes = require("./routes/cities");
+const toursRoutes = require("./routes/tours");
+const stepsRoutes = require("./routes/steps");
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/html/cover.html"));
 });
 
+app.use("/api/categories", categoriesRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/cities", citiesRoutes);
+app.use("/api/tours", toursRoutes);
+app.use("/api/steps", stepsRoutes);
+
 
 // Creazione di uno Swagger JSDoc
 const swaggerSpec = swaggerJSDoc(swaggerOptions);

@@ -148,7 +148,7 @@ router.post('/logout',(req,res) => {
           }
       });    
   } catch (error) {
-      res.status(200).json({
+      res.status(400).json({
           success: false,
           message: error
       })
@@ -207,20 +207,23 @@ router.post('/logout',(req,res) => {
 router.post("/register", (req, res) => {
   const body = req.body;
   const sqlRegister = "INSERT INTO users SET ?";
+  const sqlRegisterInfo = "INSERT INTO users_info SET ?";
   const checkEmail = `SELECT COUNT(*) AS qtMail FROM users WHERE email = '${req.body.email}'`;
+
+  var idGen = uuid();
+  let codeVerify = Math.floor(100000 + Math.random() * 300000);
 
   connection.query(checkEmail, function (err, result) {
     try {
       let numMail = result[0].qtMail;
       if (numMail > 0) {
-        res.status(200).json({
+        res.status(400).json({
           success: false,
           message: "EMAIL_ALREADY_EXISTS",
         });
       } else {
-        let codeVerify = Math.floor(100000 + Math.random() * 300000);
         const customerObj = {
-          id: uuid(),
+          id: idGen,
           name: body.name,
           surname: body.surname,
           email: body.email,
@@ -254,15 +257,36 @@ router.post("/register", (req, res) => {
 
         connection.query(sqlRegister, customerObj, (error) => {
             if(error){
-                res.status(200).json({
+                res.status(400).json({
                     success: false,
                     error: error,
                 });
             }else{
-                res.status(200).json({
+
+              
+              const customerObjInfo = {
+                id: uuid(),
+                verification_code: codeVerify,
+                verify: 'false',
+                reset_code: '000000',
+                id_user: idGen
+              };
+
+              connection.query(sqlRegisterInfo, customerObjInfo, (error) => {
+                if(error){
+                  res.status(400).json({
+                      success: false,
+                      error: error,
+                    });
+                }else{
+                  res.status(200).json({
                     success: true,
                     message: "USER_CREATED",
                 })
+                }
+              })
+
+                
             }
         //   transporter.sendMail(mailOptions, function (err, data) {
         //     if (error) {
@@ -290,7 +314,7 @@ router.post("/register", (req, res) => {
         });
       }
     } catch (error) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
         message: "GENERIC_ERROR: " + error,
       });
